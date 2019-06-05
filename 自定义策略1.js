@@ -1,8 +1,9 @@
 /*backtest
-start: 2019-05-05 00:00:00
+start: 2019-05-27 00:00:00
 end: 2019-06-04 00:00:00
-period: 5m
-exchanges: [{“eid”:”OKEX”,”currency”:”BTC_USDT”,”balance”:10000,”stocks”:3}]
+period: 1d
+exchanges: [{"eid":"OKEX","currency":"BTC_USDT","balance":10000,"stocks":3}]
+args: [["useMACD",true]]
 */
 
 var States = {
@@ -14,7 +15,7 @@ var States = {
     HALF: 5,
 };
 
-var Interval = 1000;
+var Interval = 5000;
 const originBalance = 1000;
 const originStock = 3;
 var state = States.FREE; //每次开仓 平仓 重置
@@ -90,15 +91,6 @@ function Calculate(nowAccount, nowDepth) { //计算并更新收益 、 浮动收
     Profit = (initAccount.Stocks - beginAccount.Stocks) * nowDepth.Bids[0].Price + (initAccount.Balance - beginAccount.Balance); //实现盈亏
 
     //更新入界面
-}
-
-function checkMACD(fast,shlow) {
-    //MACD指标
-    var records = exchange.GetRecords(PERIOD_M15);//可以填入不同k线周期，比如PERIOD_M1,PERIOD_M30,PERIOD_H1......
-    var macd = TA.MACD(records, 12, 26, 9);
-    Log("DIF:", macd[0].length);
-    Log("DEA:", macd[1].length)
-    Log("MACD:", macd[2].length);
 }
 
 function get_Command() { //负责交互的函数，交互及时更新 相关数值 ，熟悉的用户可以自行扩展
@@ -217,8 +209,16 @@ function Loop() { //循环主体
 
     //判断指标
     var nowTime = new Date().getTime();
-    if (nowTime - proxyStartTime > 15*60*1000){
-        checkMACD();
+    if (useMACD && nowTime - proxyStartTime > 60*1000){
+        //MACD指标
+        //var recordsM15 = exchange.GetRecords(PERIOD_M15);//可以填入不同k线周期，比如PERIOD_M1,PERIOD_M30,PERIOD_H1......
+        var macd = TA.MACD(records, 12, 26, 9);
+        Log("DIF:", macd[0][macd[0].length-2]);
+        Log("DEA:", macd[1][macd[1].length-2])
+        Log("MACD:", macd[2][macd[2].length-2]);
+        //指标线
+        $.AddZhiBiao(macd[0],records,1);
+        $.AddZhiBiao(macd[1],records,2);
         Log(nowTime - proxyStartTime);
         proxyStartTime = nowTime;
     }
@@ -249,7 +249,7 @@ function Loop() { //循环主体
         isCover = false;
     }
     //—————————————-
-
+    
     //更新图表—————————
     $.UpDateChart(records);
     //———————————
